@@ -5,7 +5,8 @@ import kernel.userdata
 import kernel.shell
 from kernel.constants import KERNELDIR, IDLE, REBOOT, RUNNING
 
-class System(object):
+
+class System:
     """
     Handles all of the low level stuff.
     PIDs, startup, shutdown, events
@@ -83,7 +84,9 @@ class System(object):
     def kill(self, shell):
         self.pids.remove(shell)
 
+
 System = System()
+
 
 def compare_permission(path, user, access):
     owner = System.metadata.get_owner(path)
@@ -94,6 +97,7 @@ def compare_permission(path, user, access):
         d = {'r': 4, 'w': 2, 'x': 1}
         compare = [d[access] * (owner == user), 0, d[access]]
     return any(int(x) & y for (x, y) in zip(permissions, compare))
+
 
 def has_permission(path, user, access):
     dirpaths = [path]
@@ -122,45 +126,55 @@ def has_permission(path, user, access):
                 return False
     return True
 
+
 def check_permission(access):
     def real_decorator(function):
         def wrapper(self, *args, **kwargs):
             amount = len(access)
             checkpaths = args[:amount]
-            laccess = access # hack to fix UnboundLocalError
+            laccess = access  # hack to fix UnboundLocalError
             for path, laccess in zip(checkpaths, access):
                 if laccess.isdigit():
                     laccess = list(set(args[int(laccess)]) & {'r', 'w'})[0]
                 if has_permission(path, 'root', laccess):
-                    print "root %s has permisison for %s" % (laccess, path)
+                    print("root %s has permisison for %s" % (laccess, path))
                 else:
-                    print "root %s permission denied for %s" % (laccess, path)
+                    print("root %s permission denied for %s" % (laccess, path))
             return function(self, *args, **kwargs)
+
         return wrapper
+
     return real_decorator
 
 
-class SysCall(object):
+class SysCall:
     def __init__(self, shell):
         self.fs = System.filesystem
-        self.md  = System.metadata
-        self.ud= System.userdata
+        self.md = System.metadata
+        self.ud = System.userdata
         self.shell = shell
 
     def abs_path(self, path):
         return self.fs.abs_path(path)
+
     def rel_path(self, path, base):
         return self.fs.rel_path(path, base)
+
     def irel_path(self, path):
         return self.fs.irel_path(path)
+
     def iabs_path(self, path):
         return self.fs.iabs_path(path)
+
     def dir_name(self, path):
         return self.fs.dir_name(path)
+
     def base_name(self, path):
         return self.fs.base_name(path)
+
     def split(self, path):
         return self.fs.split(path)
+
     def join_path(self, *args):
         return self.fs.join_path(*args)
 
@@ -205,7 +219,7 @@ class SysCall(object):
     def list_glob(self, expression):
         return self.fs.list_glob(expression)
 
-    @check_permission('r') # ? #
+    @check_permission('r')  # ? #
     def list_all(self, path="/"):
         listing = [path]
         for x in self.list_dir(path):
@@ -239,7 +253,7 @@ class SysCall(object):
     def get_meta_data(self, path):
         return self.md.get_meta_data(path)
 
-    @check_permission('r') # ? #
+    @check_permission('r')  # ? #
     def get_all_meta_data(self, path='/'):
         return self.md.get_all_meta_data(path)
 
@@ -277,7 +291,7 @@ class SysCall(object):
 
     @check_permission('w')
     def set_time_string(self, path, value=None):
-        return self.md.set_time_string( path, value)
+        return self.md.set_time_string(path, value)
 
     @check_permission('r')
     def get_time(self, path):
@@ -295,34 +309,49 @@ class SysCall(object):
 
     def get_user_data(self, user):
         return self.ud.get_user_data(user)
+
     def get_all_user_data(self):
         return self.ud.get_all_user_data()
+
     def add_user(self, user, group, info, homedir, shell, password):
         return self.ud.add_user(user, group, info, homedir, shell, password)
+
     def delete_user(self, user):
         return self.ud.delete_user(user)
+
     def change_user(self, user, value):
         return self.ud.change_user(user, value)
+
     def get_group(self, user):
         return self.ud.get_group(user)
+
     def set_group(self, user, value):
         return self.ud.set_group(user, value)
+
     def get_info(self, user):
         return self.ud.get_info(user)
+
     def set_info(self, user, value):
         return self.ud.set_info(user, value)
+
     def get_homedir(self, user):
         return self.ud.get_homedir(user)
+
     def set_homedir(self, user, value):
         return self.ud.set_homedir(user, value)
+
     def get_shell(self, user):
         return self.ud.get_shell(user)
+
     def set_shell(self, user, value):
         return self.ud.set_shell(user, value)
+
     def get_password(self, user):
         return self.ud.get_password(user)
+
     def set_password(self, user, value):
         return self.ud.set_password(user, value)
+
     def correct_password(self, user, password):
         return self.ud.correct_password(user, password)
 
@@ -346,9 +375,12 @@ class FileDecorator(object):
 
     def __iter__(self):
         return self.__f.__iter__()
+
     def __repr__(self):
         return self.__f.__repr__()
+
     def __enter__(self):
         return self.__f.__enter__()
+
     def __exit__(self, *excinfo):
         return self.__f.__exit__(self, *excinfo)

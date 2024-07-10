@@ -58,11 +58,11 @@ class Pipe(object):
             pass  # self.reader()
         else:
             if any(self.value):
-                print "<%s> %s" % (self.name, '\n'.join(self.value[:-1])),
+                print("<%s> %s" % (self.name, '\n'.join(self.value[:-1])), )
 
     def __repr__(self):
         return "<Pipe(name=%s, value=%s, writer=%d, reader=%d)>" % (
-                self.name, self.value, self.writer.pid, self.reader.pid)
+            self.name, self.value, self.writer.pid, self.reader.pid)
 
     def __str__(self):
         return "<Pipe %d: %s>" % (self._line, self.value[self._line])

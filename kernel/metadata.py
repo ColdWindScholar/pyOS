@@ -5,6 +5,7 @@ from kernel.constants import METADATAFILE
 from kernel.utils import calc_permission_number, calc_permission_string
 from kernel.utils import convert_many
 
+
 def build_meta_data_database(fsmatches):
     now = datetime.datetime.now()
 
@@ -18,7 +19,7 @@ def build_meta_data_database(fsmatches):
                     accessed TIMESTAMP,
                     modified TIMESTAMP)'''
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     try:
         with con:
             cur = con.cursor()
@@ -29,7 +30,7 @@ def build_meta_data_database(fsmatches):
             for x in fsmatches.difference(dbmatches):
                 cur.execute(addsql, ((x, "root", "rwxrwxrwx", now, now, now)))
             for x in dbmatches.difference(fsmatches):
-                cur.execute(delsql, (x, ))
+                cur.execute(delsql, (x,))
 
     except:
         items = ((x, "root", "rwxrwxrwx", now, now, now) for x in fsmatches)
@@ -39,31 +40,34 @@ def build_meta_data_database(fsmatches):
             cur.execute(tablesql)
             cur.executemany(addsql, items)
 
+
 def get_meta_data(path):
     data = None
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     with con:
         cur = con.cursor()
-        cur.execute("SELECT * FROM metadata WHERE path = ?", (path, ))
+        cur.execute("SELECT * FROM metadata WHERE path = ?", (path,))
         data = cur.fetchone()
         if data:
             ## force data to be strings and not unicode
-            data = tuple(str(x) if type(x) == unicode else x for x in data)
+            data = tuple(str(x) if type(x) == str else x for x in data)
     return data
+
 
 def get_all_meta_data(path='/'):
     data = None
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     with con:
         cur = con.cursor()
-        cur.execute("SELECT * FROM metadata WHERE path LIKE ?", (path+'%', ))
+        cur.execute("SELECT * FROM metadata WHERE path LIKE ?", (path + '%',))
         data = cur.fetchall()
         if data:
             ## force data to be strings and not unicode
-            data = [tuple(str(x) if type(x) == unicode else x for x in row) for row in data]
+            data = [tuple(str(x) if type(x) == str else x for x in row) for row in data]
     return data
+
 
 def add_path(path, owner, permission):
     now = datetime.datetime.now()
@@ -75,10 +79,11 @@ def add_path(path, owner, permission):
 
     addsql = 'INSERT INTO metadata VALUES (?, ?, ?, ?, ?, ?)'
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     with con:
         cur = con.cursor()
         cur.executemany(addsql, data)
+
 
 def copy_path(src, dst):
     now = datetime.datetime.now()
@@ -90,7 +95,7 @@ def copy_path(src, dst):
     selsql = 'SELECT owner,permission FROM metadata WHERE path = ?'
     addsql = 'INSERT INTO metadata VALUES (?, ?, ?, ?, ?, ?)'
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     with con:
         cur = con.cursor()
         temp = []
@@ -100,8 +105,9 @@ def copy_path(src, dst):
 
         # fix for ignored files
         zipped = ((x, y) for (x, y) in zip(dst, temp) if y is not None)
-        data = [(path, owner, perm, now, now, now) for ((path, ), (owner, perm)) in zipped]
+        data = [(path, owner, perm, now, now, now) for ((path,), (owner, perm)) in zipped]
         cur.executemany(addsql, data)
+
 
 def move_path(src, dst):
     now = datetime.datetime.now()
@@ -110,21 +116,23 @@ def move_path(src, dst):
     dst = convert_many(dst)
     assert len(src) == len(dst)
 
-    data = [(x, now, y) for ((x, ), (y, )) in zip(dst, src)]
+    data = [(x, now, y) for ((x,), (y,)) in zip(dst, src)]
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     with con:
         cur = con.cursor()
         cur.executemany("UPDATE metadata SET path = ?, modified = ? WHERE path = ?", data)
+
 
 def delete_path(path):
     path = convert_many(path)
     delsql = 'DELETE FROM metadata WHERE path = ?'
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     with con:
         cur = con.cursor()
         cur.executemany(delsql, path)
+
 
 def validate_permission(value):
     full = 'rwxrwxrwx'
@@ -132,31 +140,37 @@ def validate_permission(value):
     for l, f in zip(value, full):
         assert (l == '-') or (l == f)
 
+
 def get_permission_string(path):
     return get_meta_data(path)[2]
+
 
 def get_permission_number(path):
     return calc_permission_number(get_meta_data(path)[2])
 
+
 def set_permission_string(path, value):
     number = calc_permission_number(value)
     set_permission_number(path, number)
+
 
 def set_permission_number(path, value):
     now = datetime.datetime.now()
 
     validate_permission(value)
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     with con:
         cur = con.cursor()
         cur.execute("UPDATE metadata SET permission = ?, modified = ? WHERE path = ?", (value, now, path))
+
 
 def set_permission(path, value):
     try:
         set_permission_number(path, value)
     except ValueError:
         set_permission_string(path, value)
+
 
 def set_time(path, value=None):
     if type(value) == dict:
@@ -168,8 +182,9 @@ def set_time(path, value=None):
     else:
         raise TypeError
 
+
 def set_time_list(path, value):
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     columns = ['accessed', 'created', 'modified']
 
     a = [x + ' = ?' for (x, y) in zip(columns, value) if y is not None]
@@ -178,7 +193,8 @@ def set_time_list(path, value):
 
     with con:
         cur = con.cursor()
-        cur.execute(upsql, b + (path, ))
+        cur.execute(upsql, b + (path,))
+
 
 def set_time_dict(path, value=None):
     done = [None, None, None]
@@ -188,7 +204,7 @@ def set_time_dict(path, value=None):
         'c': 2, 'create': 2, 'created': 2
     }
     for key in value:
-       done[d[key]] = value[key]
+        done[d[key]] = value[key]
     set_time_list(path, done)
 
 
@@ -201,11 +217,11 @@ def set_time_string(path, value=None):
         'm': 2
     }
     timeinc = {
-        'w':'weeks',
+        'w': 'weeks',
         'd': 'days',
-        'h':'hours',
-        'm':'minutes',
-        's':'seconds'
+        'h': 'hours',
+        'm': 'minutes',
+        's': 'seconds'
     }
     for time in value.split(','):
         time = time.strip()
@@ -235,22 +251,26 @@ def set_time_string(path, value=None):
     done = [x + datetime.datetime.now() if x is not None else None for x in done]
     set_time_list(path, done)
 
+
 def get_time(path):
     return get_meta_data(path)[3:6]
+
 
 def get_owner(path):
     return get_meta_data(path)[1]
 
+
 def validate_owner(owner):
     # TODO # validate owner
     return owner
+
 
 def set_owner(path, owner):
     now = datetime.datetime.now()
 
     value = validate_owner(owner)
 
-    con = sqlite3.connect(METADATAFILE,  detect_types=sqlite3.PARSE_DECLTYPES)
+    con = sqlite3.connect(METADATAFILE, detect_types=sqlite3.PARSE_DECLTYPES)
     with con:
         cur = con.cursor()
         cur.execute("UPDATE metadata SET owner = ?, modified = ? WHERE path = ?", (value, path, now))
